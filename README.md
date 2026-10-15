@@ -1,56 +1,73 @@
 # SegInfo TrustChain Validator
 
-Aplicação de auditoria de Infraestrutura de Chaves Públicas (ICP/PKI) desenvolvida para reconstrução e inspeção do caminho de certificação de certificados digitais X.509 (`.cer`, `.crt`, `.pem`), com consulta ativa de revogação via CRL e validação criptográfica de confiança contra âncoras locais[cite: 1].
-
-Trabalho prático desenvolvido para a **Tarefa 3** da disciplina de **Segurança em Transações Eletrônicas** da **Universidade do Vale do Rio dos Sinos (UNISINOS)**[cite: 1, 10].
+Aplicação para auditoria de Infraestrutura de Chaves Públicas (ICP/PKI), reconstrução de caminhos de certificação X.509 e validação ativa de revogação via CRL. O projeto foi desenvolvido como requisito avaliativo da **Tarefa 3** da disciplina de **Segurança em Transações Eletrônicas** da **UNISINOS**.
 
 ---
 
-## Funcionalidades Principais
+## Visão Geral
 
-* **Reconstrução Visual da Cadeia de Certificação:** Árvore hierárquica interativa (`ttk.Treeview`) que mapeia a relação emissor-sujeito da AC Raiz até o certificado da entidade final[cite: 1]. Ao selecionar qualquer certificado na árvore, seus metadados específicos são inspecionados em tempo real.
-* **Aferição de Confiança sem DN Spoofing (Critério de Mérito):** A confiança da AC Raiz **não** é arbitrada pelo texto do Emissor (*Issuer DN*)[cite: 1]. O sistema calcula a impressão digital criptográfica (*Fingerprint* SHA-256) e extrai a chave pública do certificado, cruzando-a matematicamente com os certificados contidos no container de confiança[cite: 1].
-* **Container de Raízes Arbitrado pelo Usuário:** Estrutura local (`./trusted_roots`) gerenciada pela aplicação[cite: 1]. Conta com aba dedicada na interface para listar, inspecionar e importar novas autoridades de certificação raiz diretamente pelo sistema[cite: 1].
-* **Consulta Ativa de Revogação via CRL:** Análise sintática da extensão ASN.1 *CRL Distribution Points* (OID `2.5.29.31`)[cite: 1]. A aplicação efetua o download HTTP/HTTPS da lista de revogação da AC emissora em formato DER/PEM e busca o número de série (*Serial Number*) do certificado analisado[cite: 1].
-* **Validação Temporal UTC:** Comparação aritmética estrita dos campos `notBefore` e `notAfter` contra o relógio do sistema em UTC, detectando certificados expirados ou com vigência futura[cite: 1].
-* **Painel de Indicadores Rápidos (KPI Badges):** Quatro cartões com status visual imediato para:
-1. Integridade da Assinatura Digital
-2. Validade Temporal
-3. Status na Lista CRL (Ativo/Revogado)[cite: 1]
-4. Âncora de Confiança (Confiável/Não Confiável)[cite: 1]
+O **SegInfo TrustChain Validator** processa certificados digitais nos formatos `.cer`, `.crt` ou `.pem`, reconstitui a cadeia hierárquica até a AC-Raiz e afere o status de confiança com base em âncoras locais arbitradas pelo usuário.
+
+A implementação adota linguagem de programação de alto nível (Python 3) e bibliotecas criptográficas nativas (`cryptography`), atendendo aos critérios de **Mérito** acadêmico ao dispensar rotinas estruturadas puramente em scripts de terminal.
+
+---
+
+## Funcionalidades
+
+* **Reconstrução da Cadeia de Certificação:** Processa certificados de entidade final ou subordinadas e remonta a árvore hierárquica até a AC-Raiz.
 
 
-* **Exportação de Laudo Técnico:** Geração automática e exportação de relatório formal de auditoria em formato `.txt`.
+* **Aferição de Confiança sem DN Spoofing:** A verificação de confiança da AC-Raiz não utiliza o *Distinguished Name* (DN) do emissor como critério de decisão. A correspondência é realizada comparando a impressão digital criptográfica (*Fingerprint* SHA-256) e a chave pública com os certificados presentes no container.
+
+
+* **Container de Raízes Confiáveis (`./trusted_roots`):** Estrutura local em diretório onde o usuário armazena e gerencia as autoridades em que confia. A interface conta com aba dedicada para listar, inspecionar e importar novos certificados raiz.
+
+
+* **Verificação Ativa de Revogação via CRL:** Extrai o ponto de distribuição ASN.1 *CRL Distribution Points* (OID `2.5.29.31`), realiza requisição de rede HTTP/HTTPS para download da lista e inspeciona se o número de série (*Serial Number*) consta nos registros de revogação.
+
+
+* **Auditoria de Validade Temporal:** Compara as datas `notBefore` e `notAfter` em UTC com o relógio do sistema, identificando certificados vigentes, expirados ou com vigência futura.
+
+
+* **Interface Gráfica Responsiva (Tkinter/TTK):** Interface com suporte a tela cheia e redimensionamento dinâmico. Inclui árvore interativa (`ttk.Treeview`) para navegação em cada elo da cadeia, cartões métricos de status (KPI Badges) e inspetor de metadados X.509 completos.
+
+
+* **Exportação de Laudo Técnico:** Módulo de geração de relatórios formais de auditoria estruturados em formato `.txt` para fins de registro e conformidade.
+
+
 
 ---
 
 ## Arquitetura e Tecnologias
 
-A aplicação foi desenvolvida em conformidade com o padrão **RFC 5280 (X.509 v3)**[cite: 11] utilizando uma linguagem de programação estruturada e bibliotecas criptográficas nativas, atendendo aos requisitos estipulados para nota de mérito (dispensando scripts de terminal puros)[cite: 1, 2]:
+* **Linguagem:** Python 3.
 
-* **Linguagem:** Python 3
-* **Criptografia & ASN.1:** `cryptography` (módulos `x509`, `hashes`, `padding`)
-* **Requisições de Rede (CRL):** `requests`
-* **Interface Gráfica:** `tkinter` e `tkinter.ttk` (layout responsivo com suporte a redimensionamento e tela cheia)
+
+* **Núcleo Criptográfico:** `cryptography` (módulos `x509`, `hashes`, `padding.PKCS1v15`) para análise estrutural ASN.1, cálculo de hashes e validação matemática de assinaturas.
+
+
+* **Comunicação de Rede:** `requests` para requisições de download de CRLs em formato binário (DER) ou Base64 (PEM).
+
+
+* **Interface do Usuário:** `tkinter` e `tkinter.ttk` estruturados em layout responsivo com gerenciador de geometria em grid.
+
+
 
 ---
 
-## Estrutura do Projeto
+## Estrutura do Diretório
 
 ```text
 SegInfo-TrustChain-Validator/
-│
-├── interface.py              # Código-fonte principal (GUI Tkinter + Motor Criptográfico)
-├── requirements.txt          # Dependências do projeto (cryptography, requests)
+├── interface.py              # Aplicação principal (GUI Tkinter e motor criptográfico)
+├── requirements.txt          # Dependências externas do projeto
 ├── README.md                 # Documentação técnica do sistema
-│
 ├── trusted_roots/            # Container local de ACs Raiz confiadas pelo usuário
-│   └── SegInfoRoot.crt       # Certificado da AC Raiz local gerado no laboratório EJBCA
-│
-└── certificados_teste/       # Amostras para testes práticos de validação
-    ├── SegInfoRSA.crt        # Certificado emitido pela ICP laboratorial (Cadeia Válida)
+│   └── SegInfoRoot.crt       # Certificado da AC Raiz local gerado em laboratório EJBCA
+└── certificados_teste/       # Amostras para homologação e testes de bancada
+    ├── SegInfoRSA.crt        # Certificado emitido pela ICP da equipe (Cadeia Válida)
     ├── revoked_badssl.crt    # Certificado revogado para validação de CRL
-    └── expired_badssl.crt    # Certificado fora da vigência temporal
+    └── expired_badssl.crt    # Certificado expirado para teste de vigência temporal
 
 ```
 
@@ -58,36 +75,47 @@ SegInfo-TrustChain-Validator/
 
 ## Instalação e Execução
 
+### Pré-requisitos
+
+* Python 3.10 ou superior instalado no sistema operacional.
+
+
+* Gerenciador de pacotes `pip` atualizado.
+
+
+
 ### 1. Clonar o Repositório
 
 ```bash
-git clone https://github.com/guilhermeschweig/SegInfo-TrustChain-Validator.git
+git clone https://github.com/SEU_USUARIO/SegInfo-TrustChain-Validator.git
 cd SegInfo-TrustChain-Validator
 
 ```
 
-### 2. Configurar o Ambiente e Instalar Dependências
-
-Recomenda-se o uso de um ambiente virtual Python:
+### 2. Configurar o Ambiente Virtual (Opcional, mas Recomendado)
 
 ```bash
-# Criar ambiente virtual
+# Criar o ambiente virtual
 python -m venv .venv
 
-# Ativar ambiente virtual
-# No Windows (PowerShell):
+# Ativar no Windows (PowerShell)
 .venv\Scripts\Activate.ps1
-# No Linux/macOS:
+
+# Ativar no Linux / macOS
 source .venv/bin/activate
 
-# Instalar dependências
+```
+
+### 3. Instalar Dependências
+
+```bash
 pip install -r requirements.txt
 
 ```
 
-> **Nota:** Caso não utilize ambiente virtual, execute diretamente: `pip install cryptography requests`
+*(Caso prefira instalar diretamente: `pip install cryptography requests`)*
 
-### 3. Executar a Aplicação
+### 4. Executar a Aplicação
 
 ```bash
 python interface.py
@@ -98,11 +126,49 @@ python interface.py
 
 ## Metodologia de Testes e Validação Experimental
 
-Os cenários de teste foram baseados em certificados laboratoriais da ICP da equipe (gerados via EJBCA) e certificados de referência disponibilizados pela plataforma [BadSSL](https://badssl.com/)[cite: 1]:
+Os testes práticos foram executados com certificados da hierarquia laboratorial própria (`SegInfo`) e certificados de referência do repositório público [BadSSL](https://badssl.com/):
 
 | Cenário de Teste | Certificado Analisado | Configuração do Container | Comportamento Observado | Status Final |
 | --- | --- | --- | --- | --- |
-| **Cadeia Confiável Interna** | `SegInfoRSA.crt`[cite: 6, 7] | `SegInfoRoot.crt` presente em `./trusted_roots`[cite: 7] | Assinatura íntegra; âncora localizada por chave pública/hash; temporalidade regular[cite: 7]. | `CONFIÁVEL`[cite: 7] |
-| **Revogação via CRL** | `revoked.badssl.com`[cite: 8, 9] | Qualquer configuração | Extensão CRL localizada; download HTTP efetuado; serial identificado na lista de revogados[cite: 9]. | `NÃO CONFIÁVEL (REVOGADO)`[cite: 9] |
-| **Temporalidade Expirada** | `expired.badssl.com`[cite: 1] | Raiz adicionada ao container | Horário UTC atual além do campo `notAfter`; bloqueio por expiração[cite: 1]. | `NÃO CONFIÁVEL (EXPIRADO)` |
-| **Raiz Não Confiável** | `untrusted-root.badssl.com`[cite: 1] | Container mantendo apenas a raiz local `SegInfoRoot`[cite: 7] | Chave pública da AC emissora ausente do container; bloqueio mesmo com assinatura íntegra[cite: 1]. | `NÃO CONFIÁVEL` |
+| **Cadeia Confiável Interna** | `SegInfoRSA.crt`<br> | `SegInfoRoot.crt` presente em `./trusted_roots`<br> | Assinatura íntegra; âncora identificada por chave pública/hash SHA-256; período de vigência regular.
+
+ | `CONFIÁVEL`<br> |
+| **Revogação via CRL** | `revoked.badssl.com.crt`<br> | Qualquer configuração | Extensão CRL lida; download efetuado via HTTP; serial identificado na lista da AC Let's Encrypt com timestamp exato.
+
+ | `NÃO CONFIÁVEL (REVOGADO)`<br> |
+| **Validade Expirada** | `expired.badssl.com.crt`<br> | Raiz cadastrada no container | Comparação com relógio do sistema indicando data posterior ao campo `notAfter`.
+
+ | `NÃO CONFIÁVEL (EXPIRADO)`<br> |
+| **Raiz Não Confiável** | `untrusted-root.badssl.com.crt`<br> | Apenas `SegInfoRoot.crt` no container
+
+ | Rejeição por ausência da âncora de confiança no container local, mesmo com estrutura ASN.1 íntegra.
+
+ | `NÃO CONFIÁVEL`<br>
+ 
+---
+
+## Conformidade com os Critérios de Mérito
+
+1. **Análise de Confiança da AC-Raiz:** Não utiliza strings de texto do emissor (*Subject/Issuer DN*), operando exclusivamente via correspondência criptográfica da chave pública e *fingerprint* SHA-256 no container arbitrado pelo usuário.
+
+
+2. **Análise de Validade e Revogação:** Efetua a checagem temporal em UTC e consulta ativamente a lista CRL remota por meio de requisições de rede.
+
+
+3. **Implementação Estruturada:** Construída em Python com a biblioteca `cryptography`, dispensando chamadas a binários ou *shell scripts*.
+
+
+4. **Créditos e Metadados Acadêmicos:** Cabeçalho estático integrado à interface e aos relatórios exportados com identificação institucional completa.
+
+
+
+---
+
+## Autoria e Dados Acadêmicos
+
+Trabalho desenvolvido para a disciplina de **Segurança em Transações Eletrônicas** da **Universidade do Vale do Rio dos Sinos (UNISINOS)** — Turma **2026/2**.
+
+* **Docente:** Prof. Luciano Ignaczak
+
+
+* **Curso:** Segurança da Informação
